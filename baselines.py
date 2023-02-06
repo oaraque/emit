@@ -11,23 +11,28 @@ import spacy
 
 import evaluate
 
-def get_classifier():
-    return MultiOutputClassifier(
-        SGDClassifier(
-            loss='log_loss', penalty='l2', class_weight="balanced",
-            early_stopping=True, n_jobs=-1, random_state=42,
+def get_classifier(multi=True):
+    if multi:
+        return MultiOutputClassifier(
+            SGDClassifier(
+                loss='log_loss', penalty='l2', class_weight="balanced",
+                early_stopping=True, n_jobs=-1, random_state=42,
+            )
         )
+    return SGDClassifier(
+        loss='log_loss', penalty='l2', class_weight="balanced",
+        early_stopping=True, n_jobs=-1, random_state=42,
     )
 
-def define_baselines():
+def define_baselines(multi=True):
     pipe1 = Pipeline([
         ("unigram", CountVectorizer(ngram_range=(1,2))),
-        ("LogReg", get_classifier()),
+        ("LogReg", get_classifier(multi)),
     ])
 
     pipe2 = Pipeline([
         ("tfidf", TfidfVectorizer(ngram_range=(1,2))),
-        ("LogReg", get_classifier()),
+        ("LogReg", get_classifier(multi)),
     ])
 
     return [pipe1, pipe2]
@@ -55,23 +60,25 @@ def main():
 
     texts_train = train_data["text"].values
     texts_test = test_nolabel["text"].values
-    labels_train = train_data[evaluate.LABELS].values
-
     texts_train = preprocess_text(texts_train, nlp)
     texts_test = preprocess_text(texts_test, nlp)
 
     scores = []
-    baselines = define_baselines()
-    for baseline in baselines:
-        baseline.fit(texts_train, labels_train)
-        predictions = baseline.predict(texts_test)
-        score, _ = evaluate.evaluate_predictions(predictions)
-        scores.append([baseline.steps[0][0], score])
+    for subtask in ["A", "B"]:
+        label_selector = evaluate.get_label_selector(subtask)
+        labels_train = train_data[label_selector].values
 
-        # export predictions to check format
-        evaluate.export_predictions(test_ids, predictions)
+        baselines = define_baselines(True)
+        for baseline in baselines:
+            baseline.fit(texts_train, labels_train)
+            predictions = baseline.predict(texts_test)
+            score, _ = evaluate.evaluate_predictions(predictions, subtask=subtask)
+            scores.append([baseline.steps[0][0], subtask, score])
 
-    scores = pd.DataFrame(scores, columns=["baseline", "f1 macro"])
+            # export predictions to check format
+            evaluate.export_predictions(test_ids, predictions, label_selector)
+
+    scores = pd.DataFrame(scores, columns=["baseline", "subtask", "f1 macro"])
     print(pd.DataFrame(scores))
 
 if __name__ == "__main__":

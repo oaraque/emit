@@ -15,6 +15,13 @@ LABELS = [
     'Anger', 'Anticipation', 'Disgust', 'Fear', 'Joy', 'Love',
     'Neutral', 'Sadness', 'Surprise', 'Trust', 'Direction', 'Topic'
 ]
+LABELS_EMOTION = [
+    'Anger', 'Anticipation', 'Disgust', 'Fear', 'Joy', 'Love',
+    'Neutral', 'Sadness', 'Surprise', 'Trust', 
+]
+LABELS_DIRECTION = [
+    'Direction', 'Topic',
+]
 
 REPORTS_PATH = "reports/"
 
@@ -31,13 +38,13 @@ def read_predictions(path):
     preds_df = pd.read_csv(path, index_col=0)
     return preds_df
 
-def export_predictions(ids, predictions, path="predictions/", filename=None):
+def export_predictions(ids, predictions, labels, path="predictions/", filename=None):
     check_path(path)
 
     if filename is None:
         now = datetime.strftime(datetime.now(), format="%Y-%m-%d_%H-%M")
         filename = f"preds_{now}.csv"
-    preds_df = pd.DataFrame(index=ids, columns=LABELS, data=predictions)
+    preds_df = pd.DataFrame(index=ids, columns=labels, data=predictions)
     preds_df.index.name = "id"
     final_path = os.path.join(path, filename)
     preds_df.to_csv(final_path)
@@ -50,10 +57,21 @@ def save_report(report, identifier="submission"):
     with open(path, "w") as f:
         f.write(report)
 
-def evaluate_predictions(predictions):
-    labels_gold = read_file(TEST_DATA_PATH)[LABELS]
+def get_label_selector(subtask):
+    label_selector = LABELS
+    if subtask == "A":
+        label_selector = LABELS_EMOTION
+    elif subtask == "B":
+        label_selector = LABELS_DIRECTION
+    else: # a default case, considering all labels
+        label_selector = LABELS
+    return label_selector
+
+def evaluate_predictions(predictions, subtask="A"):
+    label_selector = get_label_selector(subtask)
+    labels_gold = read_file(TEST_DATA_PATH)[label_selector]
     score = f1_score(labels_gold, predictions, average="macro")
-    clf_report = classification_report(labels_gold, predictions, target_names=LABELS)
+    clf_report = classification_report(labels_gold, predictions, target_names=label_selector)
 
     report = f"""
     F1-macro: {score}
@@ -62,13 +80,15 @@ def evaluate_predictions(predictions):
     print(report)
     return score, report
 
-def check_predictions_format(preds):
-    assert (preds.columns == LABELS).all()
+def check_predictions_format(preds, subtask):
+    label_selector = get_label_selector(subtask)
+    assert (preds.columns == label_selector).all()
     assert preds.index.name == "id"
 
 def main():
     parser = argparse.ArgumentParser(description="Evaluate predictions for EMit at EVALITA")
     parser.add_argument("predictions_file", type=str, help="Predictions file to evaluate")
+    parser.add_argument("task", choices=["A", "B"], help="task for wich evaluate, can be A or B")
     parser.add_argument("--glob", action="store_true",
      help="If specified, the arg predictions_file contains a glob pattern for obtaining several predictions files")
     args = parser.parse_args()
@@ -82,10 +102,11 @@ def main():
     for preds_file in preds_files:
         preds_id = os.path.splitext(os.path.basename(preds_file))[0]
         preds_input = read_predictions(preds_file)
-        check_predictions_format(preds_input)
+        check_predictions_format(preds_input, args.task)
+        preds_input = preds_input[get_label_selector(args.task)]
 
         # evaluate predictions
-        score, report = evaluate_predictions(preds_input)
+        score, report = evaluate_predictions(preds_input, subtask=args.task)
         save_report(report, identifier=preds_id)
         print(f"Predictions '{preds_id}' score: {score}")
 

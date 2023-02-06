@@ -33,24 +33,26 @@ def test_baselines_define_baselines():
         assert isinstance(model, Pipeline)
 
 def test_evaluate_evaluate_predictions():
-    predictions_fake = np.random.randint(2, size=(1000, 12))
-    score, report = evaluate.evaluate_predictions(predictions_fake)
-    assert isinstance(score, float)
-    assert 0.0 <= score <= 1.0
-    assert isinstance(report, str)
-    assert len(report) > 0
+    for subtask in ["A", "B"]:
+        dim = 10 if subtask=="A" else 2
+        predictions_fake = np.random.randint(2, size=(1000, dim))
+        score, report = evaluate.evaluate_predictions(predictions_fake, subtask=subtask)
+        assert isinstance(score, float)
+        assert 0.0 <= score <= 1.0
+        assert isinstance(report, str)
+        assert len(report) > 0
 
 def test_evaluate_export_read_predictions():
     # export predictions
-    predictions_fake = np.random.randint(2, size=(1000, 12))
+    predictions_fake = np.random.randint(2, size=(1000, 10))
     ids_fake = np.arange(1000)
-    path = evaluate.export_predictions(ids_fake, predictions_fake)
+    path = evaluate.export_predictions(ids_fake, predictions_fake, evaluate.LABELS_EMOTION)
 
     # read predictions 
     predictions = evaluate.read_predictions(path)
     assert (predictions.values == predictions_fake).all()
     assert (predictions.index.values == ids_fake).all()
-    assert (predictions.columns == evaluate.LABELS).all()
+    assert (predictions.columns == evaluate.LABELS_EMOTION).all()
     assert predictions.index.name == "id"
     os.remove(path)
 
