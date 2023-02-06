@@ -1,7 +1,5 @@
 # -*- coding: utf-8 -*-
 
-from icecream import ic
-
 import os
 import argparse
 import pandas as pd
