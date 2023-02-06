@@ -42,7 +42,7 @@ def export_predictions(ids, predictions, labels, path="predictions/", filename=N
     check_path(path)
 
     if filename is None:
-        now = datetime.strftime(datetime.now(), format="%Y-%m-%d_%H-%M")
+        now = datetime.strftime(datetime.now(), format="%Y-%m-%d_%H-%M-%S")
         filename = f"preds_{now}.csv"
     preds_df = pd.DataFrame(index=ids, columns=labels, data=predictions)
     preds_df.index.name = "id"

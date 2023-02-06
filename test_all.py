@@ -66,3 +66,26 @@ def test_evaluate_save_report():
         read = f.read().strip()
     assert read == msg
     os.remove(path)
+
+
+## Tests about the data files
+def test_data_ids():
+    train = evaluate.read_file("data/emit_train.csv")
+    train_A = evaluate.read_file("data/emit_train_A.csv")
+    train_B = evaluate.read_file("data/emit_train_B.csv")
+    test = evaluate.read_file("data/emit_test.csv")
+    test_nolabel = evaluate.read_file("data/emit_test_nolabel.csv")
+
+    assert len(set(train["id"]) & set(train_A["id"])) == train.shape[0]
+    assert len(set(train["id"]) & set(train_B["id"])) == train.shape[0]
+    assert len(set(test["id"]) & set(train["id"])) == 0
+    assert len(set(test_nolabel["id"]) & set(test["id"])) == test.shape[0]
+
+def test_data_cols():
+    train = evaluate.read_file("data/emit_train.csv")
+    train_A = evaluate.read_file("data/emit_train_A.csv")
+    train_B = evaluate.read_file("data/emit_train_B.csv")
+
+    assert (train.columns == ["id", "text"] + evaluate.LABELS).all()
+    assert (train_A.columns == ["id", "text"] + evaluate.LABELS_EMOTION).all()
+    assert (train_B.columns == ["id", "text"] + evaluate.LABELS_DIRECTION).all()
