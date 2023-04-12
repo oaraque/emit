@@ -12,6 +12,14 @@ You can find the dataset [`release/emit_2023.zip`](release/emit_2023.zip) file.
 
 To obtain the dataset, please fill in the following form: https://forms.gle/6tHUZ4qcwLfkNior9 
 
+## Evaluation script
+
+We provide the **official evaluation script** in the [`evaluate.py`](evaluate.py) file.
+This aids to understand the final evaluation of the shared task.
+
+Additionally, the file [`baselines.py`](baselines.py) provides the code for the evaluation of some baselines (unigrams, TF-IDF).
+_This is not mandatory_, but you can use this code to better understand the evaluation of the task.
+
 ## Submission examples
 You can find submissions examples for Subtasks A and B in the [`submission_example_task-A.csv`](submission_example_task-A.csv) and [`submission_example_task-B.csv`](submission_example_task-B.csv).
 
