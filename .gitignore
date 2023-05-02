@@ -135,3 +135,4 @@ predictions/
 baselines.ipynb
 release/*
 !release/emit_2023-v1.zip
+!release/emit_2023-test.zip

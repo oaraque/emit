@@ -10,6 +10,9 @@ Important information on the EMit share task, guidelines and details: [EMit_guid
 ## Dataset
 You can find the dataset [`release/emit_2023.zip`](release/emit_2023.zip) file.
 
+**NEW!**
+Test set released, find it in [`release/emit_2023-test.zip`](release/emit_2023-test.zip).
+
 To obtain the dataset, please fill in the following form: https://forms.gle/6tHUZ4qcwLfkNior9 
 
 ## Evaluation script
