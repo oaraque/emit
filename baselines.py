@@ -51,12 +51,16 @@ def main():
 
     train_data = evaluate.read_file(evaluate.TRAIN_DATA_PATH)
     test_nolabel = evaluate.read_file(evaluate.TEST_NOLABEL_DATA_PATH)
+    test_ood_nolabel = evaluate.read_file(evaluate.TEST_NOLABEL_OOD_DATA_PATH)
     test_ids = test_nolabel["id"].values
+    test_ood_ids = test_ood_nolabel["id"].values
 
     texts_train = train_data["text"].values
     texts_test = test_nolabel["text"].values
+    texts_test_ood = test_ood_nolabel["text"].values
     texts_train = preprocess_text(texts_train, nlp)
     texts_test = preprocess_text(texts_test, nlp)
+    texts_test_ood = preprocess_text(texts_test_ood, nlp)
 
     scores = []
     for subtask in ["A", "B"]:
@@ -66,22 +70,38 @@ def main():
         baselines = define_baselines()
         for baseline in baselines:
             baseline.fit(texts_train, labels_train)
+            # predictions on in-domain test set
             predictions = baseline.predict(texts_test)
-            score, _ = evaluate.evaluate_predictions(predictions, subtask=subtask)
-            scores.append([baseline.steps[0][0], subtask, score])
+            score, _ = evaluate.evaluate_predictions(predictions, test_ids, subtask=subtask)
+            scores.append([baseline.steps[0][0], subtask, False, score])
 
             # export predictions to check format
             evaluate.export_predictions(test_ids, predictions, label_selector,
              filename=f"preds_baseline_{baseline.steps[0][0]}-{subtask}.csv")
+
+            # predictions on out-of-domain test set 
+            predictions = baseline.predict(texts_test_ood)
+            score, _ = evaluate.evaluate_predictions(predictions, test_ood_ids, subtask=subtask, ood=True)
+            scores.append([baseline.steps[0][0], subtask, True, score])
+
+            evaluate.export_predictions(test_ood_ids, predictions, label_selector,
+             filename=f"preds_baseline_{baseline.steps[0][0]}-{subtask}-ood.csv")
         
-        # random baseline
+        # random baseline on in-domain test set
         predictions = np.random.randint(2, size=(len(texts_test), labels_train.shape[1]))
-        score, _ = evaluate.evaluate_predictions(predictions, subtask=subtask)
+        score, _ = evaluate.evaluate_predictions(predictions, test_ids, subtask=subtask)
         evaluate.export_predictions(test_ids, predictions, label_selector,
          filename=f"preds_baseline_random-{subtask}.csv")
-        scores.append(["random-baseline", subtask, score])
+        scores.append(["random-baseline", subtask, False, score])
 
-    scores = pd.DataFrame(scores, columns=["baseline", "subtask", "f1-macro"])
+        # random baseline on ood test set
+        predictions = np.random.randint(2, size=(len(texts_test_ood), labels_train.shape[1]))
+        score, _ = evaluate.evaluate_predictions(predictions, test_ood_ids, subtask=subtask, ood=True)
+        evaluate.export_predictions(test_ood_ids, predictions, label_selector,
+         filename=f"preds_baseline_random-{subtask}-ood.csv")
+        scores.append(["random-baseline", subtask, True, score])
+
+    scores = pd.DataFrame(scores, columns=["baseline", "subtask", "ood", "f1-macro"])
     print(pd.DataFrame(scores))
 
 if __name__ == "__main__":
